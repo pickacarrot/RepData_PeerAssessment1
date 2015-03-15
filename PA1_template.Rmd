@@ -1,25 +1,95 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "test"
+author: "pickacarrot"
+date: "March 15, 2015"
+output: html_document
 ---
 
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-## Loading and preprocessing the data
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+•loading data
+```{r}
+activity <- read.csv("activity.csv")
+```
+
+•mean tatal number of steps taken perday
+
+```{r, echo=TRUE}
+perday1 <- tapply(activity$steps,activity$date,sum, na.rm=TRUE)
+steps1 <- as.data.frame(as.table(perday1))
+hist1<-hist(steps1$Freq, breaks=15)
+```
+the mean and median is:
+```{r, echo=TRUE}
+library(dplyr)
+summarize(steps1, mean= mean(steps1$Freq, na.rm=TRUE),median=median(steps1$Freq, na.rm=TRUE))
+```
+
+•average daily activity pattern
+```{r,echo=TRUE}
+dailypattern <- tapply(activity$steps,activity$interval,mean, na.rm=TRUE)
+dailypattern <- as.data.frame(as.table(dailypattern))
+dailypattern$interval <- as.numeric(levels(droplevels(dailypattern$Var1)))
+plot(dailypattern$interval,dailypattern$Freq,type='l', main="average steps taken across intervals")
+```
+the following interval contains the maximum number:
+```{r, echo=TRUE}
+filter(dailypattern, dailypattern$Freq==max(dailypattern$Freq))
+```
+
+•inputing missing values
+the tatal number of missing values is:
+```{r, echo=TRUE}
+nas <- nrow(activity)-sum(complete.cases(activity))
+```
+filling the missing values with the mean for the 5 min interval
+```{r, echo=TRUE}
+newdt <- data.frame(activity)
+n <- nrow(newdt)
+for (i in 1:n) {
+  if (is.na(newdt[i,1])){
+    newdt[i,1] = dailypattern[which(dailypattern$interval==newdt[i,3]),2]
+}
+}
+```
+the new histogram is:
+```{r, echo=TRUE}
+perday2 <- tapply(newdt$steps,newdt$date,sum, na.rm=TRUE)
+steps2 <- as.data.frame(as.table(perday2))
+hist2<-hist(steps2$Freq, breaks=15)
+```
+the new mean and median is different from the original ones:
+```{r, echo=TRUE}
+summarize(steps2, mean= mean(steps2$Freq, na.rm=TRUE),median=median(steps2$Freq
+, na.rm=TRUE))
+```
+
+•differences in activity patterns between weekdays and weekends
+add a new factor variable
+```{r,echo=TRUE}
+newdt2 <- data.frame(newdt)
+newdt2$date <- as.Date(levels(droplevels(newdt$date)))
+tempdate <- as.POSIXlt(newdt2$date,format="%Y-%m-%d")
+newdt2<- mutate(newdt2, daytype=factor(1*(tempdate$wday<6),labels=c("weekend", "weekday")))
+```
+make plots seperatly for weekdays and weekends
+```{r,echo=TRUE}
+weekday <- subset(newdt2, daytype=="weekday")
+weekend <- subset(newdt2, daytype=="weekend")
+pattern1 <- tapply(weekday$steps,weekday$interval,mean, na.rm=TRUE)
+pattern1 <- as.data.frame(as.table(pattern1))
+pattern1$interval <- as.numeric(levels(droplevels(pattern1$Var1)))
+
+pattern2 <- tapply(weekend$steps,weekend$interval,mean, na.rm=TRUE)
+pattern2 <- as.data.frame(as.table(pattern2))
+pattern2$interval <- as.numeric(levels(droplevels(pattern2$Var1)))
+
+par(mfrow=c(2,1))
+plot(pattern1$interval,pattern1$Freq,type='l', xlab="intervals/weekday", ylab="freq", main="average steps taken across intervals on weekdays")
+plot(pattern2$interval,pattern2$Freq,type='l', xlab="intervals/weekend", ylab="freq", main="average steps taken across intervals on weekends")
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
